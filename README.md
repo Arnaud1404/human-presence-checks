@@ -76,6 +76,7 @@ python bench.py --trace traces/human.csv
 ## Limits
 
 - The checks are reimplemented from public write-ups, not from samples, and are not validated against real malware.
+- `cursor_moved` runs once, as pafish describes it. A real user reading a page often keeps the mouse still for more than 2 s and fails it, which is why samples such as LummaC2 poll until the cursor moves.
 - Only the cursor counts as input; keyboard input, recent documents, browser history and installed software, which other checks read, are not modelled.
 - The simulators run in Python against a model of `GetCursorPos` and `GetLastInputInfo`. Injecting the input into a guest, from an agent inside it or from the hypervisor, is out of scope.
 - A sampled trace stands in for real-time reads, so timing effects such as scheduling jitter in a loaded VM are absent.
