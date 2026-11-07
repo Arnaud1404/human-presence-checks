@@ -49,12 +49,23 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--seconds", type=float, default=35.0, help="at least 30, the window bench.py scores"
     )
+    parser.add_argument(
+        "--countdown", type=int, default=5, help="seconds to get ready before recording starts"
+    )
     args = parser.parse_args(argv)
     if args.seconds < 30:
         parser.error("--seconds must be at least 30: the idle check reads the cursor at 30 s")
+    if args.countdown < 0:
+        parser.error("--countdown must not be negative")
     if sys.platform != "win32":
         sys.exit("record.py reads the cursor through user32 and runs on Windows only")
-    print(f"recording {args.seconds:.0f} s, use the mouse as usual")
+    # Without a countdown, reading these lines takes the first seconds of the trace, and the
+    # 2 s cursor check then fails for a reason that has nothing to do with the user.
+    print(f"Recording {args.seconds:.0f} s. Hand on the mouse, start moving at GO.")
+    for left in range(args.countdown, 0, -1):
+        print(f"{left}...", flush=True)
+        time.sleep(1)
+    print("GO: use the mouse as usual", flush=True)
     rows = record(args.out, args.seconds)
     print(f"{rows} samples written to {args.out}")
 
