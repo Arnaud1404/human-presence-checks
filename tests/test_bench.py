@@ -25,12 +25,12 @@ def test_random_jitter_only_passes_lumma_by_chance(rows):
 
 def test_straight_lines_pass_lumma_at_once(rows):
     r = rows["linear"]
-    assert r.lumma == 20 and r.lumma_median_ms == 200
+    assert r.lumma == 20 and r.lumma_median_ms == 500
 
 
 def test_human_like_passes_everything_at_once(rows):
     r = rows["human_like"]
-    assert (r.moved, r.recent, r.lumma, r.lumma_median_ms) == (20, 20, 20, 200)
+    assert (r.moved, r.recent, r.lumma, r.lumma_median_ms) == (20, 20, 20, 500)
 
 
 def test_recorded_trace_roundtrip(tmp_path):

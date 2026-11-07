@@ -70,8 +70,13 @@ def test_looks_human():
     assert not looks_human([(0, 0), (10, 0), (10, 10), (20, 10), (20, 20)])  # 90 degree turns
 
 
-def test_lumma_detonates_on_first_attempt_for_a_straight_line():
-    assert lumma_detonation(moving_until(10_000, 10_000)) == 200
+def test_lumma_detonates_after_one_poll_for_a_straight_line():
+    assert lumma_detonation(moving_until(10_000, 10_000)) == 500
+
+
+def test_lumma_wait_is_measured_from_the_trace_start():
+    shifted = [(t + 1_000, x, y) for t, x, y in moving_until(10_000, 10_000)]
+    assert lumma_detonation(shifted) == 500
 
 
 def test_lumma_never_detonates_on_zigzag():

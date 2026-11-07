@@ -72,17 +72,24 @@ def looks_human(points: Sequence[Point], max_angle: float = 45.0) -> bool:
     return all(angle(u, v) < max_angle for u, v in pairwise(vectors))
 
 
-def lumma_detonation(trace: Trace, interval_ms: int = 50, reads: int = 5) -> int | None:
-    """Time at which LummaC2 v4.0 would stop waiting, or None if it never does in the trace.
+def lumma_detonation(
+    trace: Trace, interval_ms: int = 50, reads: int = 5, poll_ms: int = 300
+) -> int | None:
+    """Wait, from the trace start, until LummaC2 v4.0 would act; None if not within the trace.
 
-    The sample reads the cursor 5 times 50 ms apart and starts over until one set passes
-    looks_human (Outpost24 analysis, November 2023). Modelled here as back-to-back attempts.
+    Outpost24 analysis (November 2023), as reported by The Hacker News and Picus: read the
+    cursor, Sleep(300) and read again until it has moved; then take 5 reads 50 ms apart that
+    must pass looks_human, otherwise start over from the 300 ms wait.
     """
+    t0 = t = trace[0][0]
     span = interval_ms * (reads - 1)
-    t = trace[0][0]
-    while t + span <= trace[-1][0]:
+    while t + poll_ms + span <= trace[-1][0]:
+        previous = position(trace, t)
+        t += poll_ms
+        if position(trace, t) == previous:
+            continue
         points = [position(trace, t + k * interval_ms) for k in range(reads)]
         if looks_human(points):
-            return t + span
-        t += span + interval_ms
+            return t + span - t0
+        t += span
     return None
