@@ -45,13 +45,17 @@ def cursor_moved(trace: Trace, wait_ms: int = 2000) -> bool:
     return position(trace, t0) != position(trace, t0 + wait_ms)
 
 
-def recent_input(trace: Trace, sleep_ms: int = 30_000, max_idle_ms: int = 6_000) -> bool:
+def recent_input(
+    trace: Trace, sleep_ms: int = 30_000, max_idle_ms: int = 6_000, moves_are_input: bool = True
+) -> bool:
     """Sleep(30000), then GetTickCount() - LASTINPUTINFO.dwTime above 6000 ms means no user.
 
-    Check Point Evasions, "Human-like behavior", 2.5.
+    Check Point Evasions, "Human-like behavior", 2.5. Cursor moves made with SetCursorPos do
+    not update LASTINPUTINFO (moves_are_input=False); SendInput moves do.
     """
     now = trace[0][0] + sleep_ms
-    return now - last_input(trace, now) <= max_idle_ms
+    last = last_input(trace, now) if moves_are_input else trace[0][0]
+    return now - last <= max_idle_ms
 
 
 def angle(u: Point, v: Point) -> float:

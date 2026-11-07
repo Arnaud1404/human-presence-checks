@@ -49,6 +49,10 @@ def test_recent_input_threshold():
     assert not recent_input(still(30_000))
 
 
+def test_recent_input_ignores_moves_that_are_not_input():
+    assert not recent_input(moving_until(29_000, 30_000), moves_are_input=False)
+
+
 def test_recent_input_needs_a_30_s_trace():
     with pytest.raises(ValueError):
         recent_input(still(10_000))

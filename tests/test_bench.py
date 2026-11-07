@@ -13,9 +13,9 @@ def test_idle_fails_every_check(rows):
     assert (r.moved, r.recent, r.lumma) == (0, 0, 0)
 
 
-def test_jumps_beat_the_simple_checks_but_never_lumma(rows):
+def test_set_cursor_pos_jumps_only_beat_the_position_check(rows):
     r = rows["jumps"]
-    assert (r.moved, r.recent, r.lumma) == (20, 20, 0)
+    assert (r.moved, r.recent, r.lumma) == (20, 0, 0)
 
 
 def test_random_jitter_only_passes_lumma_by_chance(rows):

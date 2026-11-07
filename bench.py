@@ -10,7 +10,7 @@ from itertools import pairwise
 from pathlib import Path
 
 from checks import Sample, cursor_moved, lumma_detonation, recent_input
-from trajectories import GENERATORS, generate
+from trajectories import SIMULATORS, generate
 
 
 @dataclass(frozen=True)
@@ -23,13 +23,13 @@ class Row:
     lumma_median_ms: float | None
 
 
-def evaluate(name: str, traces: list[list[Sample]]) -> Row:
+def evaluate(name: str, traces: list[list[Sample]], moves_are_input: bool = True) -> Row:
     detonations = [d for t in traces if (d := lumma_detonation(t)) is not None]
     return Row(
         name=name,
         runs=len(traces),
         moved=sum(cursor_moved(t) for t in traces),
-        recent=sum(recent_input(t) for t in traces),
+        recent=sum(recent_input(t, moves_are_input=moves_are_input) for t in traces),
         lumma=len(detonations),
         lumma_median_ms=statistics.median(detonations) if detonations else None,
     )
@@ -37,8 +37,12 @@ def evaluate(name: str, traces: list[list[Sample]]) -> Row:
 
 def simulate(seeds: int, duration_ms: int = 30_000) -> list[Row]:
     return [
-        evaluate(name, [generate(name, seed, duration_ms) for seed in range(seeds)])
-        for name in GENERATORS
+        evaluate(
+            name,
+            [generate(name, seed, duration_ms) for seed in range(seeds)],
+            moves_are_input=sim.moves_are_input,
+        )
+        for name, sim in SIMULATORS.items()
     ]
 
 

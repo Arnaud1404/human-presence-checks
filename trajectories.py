@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass
 
 from checks import Sample
 
@@ -25,7 +26,7 @@ def _idle(rng: random.Random) -> Iterator[FloatPoint]:
 
 
 def _jumps(rng: random.Random, period_ms: int = 1000) -> Iterator[FloatPoint]:
-    """Teleports to a random point once per period, like a SetCursorPos auto-clicker."""
+    """Teleports to a random point once per period with SetCursorPos, like an auto-clicker."""
     while True:
         p = _random_point(rng)
         for _ in range(period_ms // STEP_MS):
@@ -79,18 +80,26 @@ def _human_like(rng: random.Random) -> Iterator[FloatPoint]:
         p0 = p3
 
 
-GENERATORS: dict[str, Callable[[random.Random], Iterator[FloatPoint]]] = {
-    "idle": _idle,
-    "jumps": _jumps,
-    "random_walk": _random_walk,
-    "linear": _linear,
-    "human_like": _human_like,
+@dataclass(frozen=True)
+class Simulator:
+    moves: Callable[[random.Random], Iterator[FloatPoint]]
+    # False when the simulator calls SetCursorPos, which moves the cursor without updating
+    # GetLastInputInfo; True for SendInput or input injected from outside the guest.
+    moves_are_input: bool
+
+
+SIMULATORS: dict[str, Simulator] = {
+    "idle": Simulator(_idle, moves_are_input=True),
+    "jumps": Simulator(_jumps, moves_are_input=False),
+    "random_walk": Simulator(_random_walk, moves_are_input=True),
+    "linear": Simulator(_linear, moves_are_input=True),
+    "human_like": Simulator(_human_like, moves_are_input=True),
 }
 
 
 def generate(name: str, seed: int, duration_ms: int = 30_000) -> list[Sample]:
     """Integer screen positions, clamped to the screen, as GetCursorPos reports them."""
-    points = GENERATORS[name](random.Random(seed))
+    points = SIMULATORS[name].moves(random.Random(seed))
     return [
         (t, min(max(round(x), 0), WIDTH - 1), min(max(round(y), 0), HEIGHT - 1))
         for t, (x, y) in zip(range(0, duration_ms + 1, STEP_MS), points, strict=False)
