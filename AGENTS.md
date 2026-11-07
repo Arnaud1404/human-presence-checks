@@ -19,7 +19,7 @@ python bench.py --seeds 100
 python record.py --out traces/human.csv   # Windows; traces/ is ignored by git
 ```
 
-A change is done when the three commands above pass and the README table matches `python bench.py --seeds 100`.
+A change is done when the three commands above pass; `tests/test_readme.py` fails if the README table no longer matches `python bench.py --seeds 100`.
 
 ## Rules
 
