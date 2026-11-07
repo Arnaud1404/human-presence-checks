@@ -1,0 +1,17 @@
+[project]
+name = "human-presence-checks"
+version = "0.1.0"
+description = "Published malware user-presence checks replayed against simulated and recorded cursor traces"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
