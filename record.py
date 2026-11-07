@@ -15,33 +15,43 @@ class _Point(ctypes.Structure):
 
 
 def record(out: Path, seconds: float, step_ms: int = 10) -> int:
+    """Reads until the first read at or past `seconds`, so the trace covers the whole span."""
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     point = _Point()
     out.parent.mkdir(parents=True, exist_ok=True)
     start = time.perf_counter_ns()
+    deadline = start
     rows = 0
     with out.open("w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["t_ms", "x", "y"])
         last_t = -1
-        while (t := (time.perf_counter_ns() - start) // 1_000_000) <= seconds * 1000:
+        while True:
+            t = (time.perf_counter_ns() - start) // 1_000_000
             if not user32.GetCursorPos(ctypes.byref(point)):
                 raise ctypes.WinError(ctypes.get_last_error())
             if t > last_t:  # keep times strictly increasing if two reads share a millisecond
                 writer.writerow([t, point.x, point.y])
                 rows += 1
                 last_t = t
-            time.sleep(step_ms / 1000)
-    return rows
+            if t >= seconds * 1000:
+                return rows
+            # Sleep to the next tick of a fixed grid, so loop overhead does not accumulate.
+            deadline += step_ms * 1_000_000
+            delay = deadline - time.perf_counter_ns()
+            if delay > 0:
+                time.sleep(delay / 1e9)
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("traces/human.csv"))
     parser.add_argument(
-        "--seconds", type=float, default=35.0, help="at least 30 for the idle check"
+        "--seconds", type=float, default=35.0, help="at least 30, the window bench.py scores"
     )
     args = parser.parse_args(argv)
+    if args.seconds < 30:
+        parser.error("--seconds must be at least 30: the idle check reads the cursor at 30 s")
     if sys.platform != "win32":
         sys.exit("record.py reads the cursor through user32 and runs on Windows only")
     print(f"recording {args.seconds:.0f} s, use the mouse as usual")
