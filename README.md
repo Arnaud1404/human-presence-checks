@@ -69,7 +69,7 @@ python bench.py --seeds 100
 Recorded baseline, Windows only:
 
 ```bash
-python record.py --out traces/human.csv --seconds 35   # 5 s countdown, then use the mouse normally
+python record.py --out traces/human.csv --seconds 35   # 5 s countdown, then browse or click around normally
 python bench.py --trace traces/human.csv
 ```
 

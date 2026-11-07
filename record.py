@@ -61,7 +61,10 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit("record.py reads the cursor through user32 and runs on Windows only")
     # Without a countdown, reading these lines takes the first seconds of the trace, and the
     # 2 s cursor check then fails for a reason that has nothing to do with the user.
-    print(f"Use the mouse as usual for {args.seconds:.0f} s, starting at GO.", flush=True)
+    print(
+        f"Browse or click around as you normally would for {args.seconds:.0f} s, starting at GO.",
+        flush=True,
+    )
     for left in range(args.countdown, 0, -1):
         print(f"{left}...", flush=True)
         time.sleep(1)
