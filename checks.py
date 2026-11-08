@@ -9,11 +9,10 @@ from __future__ import annotations
 
 import math
 from bisect import bisect_right
-from collections.abc import Sequence
 from itertools import pairwise
 
 Sample = tuple[int, int, int]
-Trace = Sequence[Sample]
+Trace = list[Sample]
 Point = tuple[int, int]
 
 
@@ -64,7 +63,7 @@ def angle(u: Point, v: Point) -> float:
     return math.degrees(math.acos(max(-1.0, min(1.0, cos))))
 
 
-def looks_human(points: Sequence[Point], max_angle: float = 45.0) -> bool:
+def looks_human(points: list[Point], max_angle: float = 45.0) -> bool:
     """LummaC2 test on one set of reads: all consecutive reads differ, every turn < 45 degrees."""
     vectors = []
     for a, b in pairwise(points):
