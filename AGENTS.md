@@ -27,3 +27,4 @@ A change is done when the three commands above pass; `tests/test_readme.py` fail
 - No malware samples, no code that evades a real sandbox: the repo measures simulators against published checks.
 - README limits stay in sync with what the code models.
 - Hard rule: no comprehensions or generator expressions, in source or tests. Not `[(int(r["t_ms"]), int(r["x"]), int(r["y"])) for r in csv.DictReader(f)]`, not `any(a == b for a, b in pairs)`: write an explicit `for` loop with named variables. `tests/test_style.py` enforces it; ruff's SIM110 is off because it asks for the opposite.
+- A blank line separates each logical step inside a function: guard clauses, setup, each loop, the return. In tests, building the input is separated from the call and its asserts.
