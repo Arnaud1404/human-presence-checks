@@ -8,12 +8,31 @@ from bench import WINDOW_MS, evaluate, format_table, load_trace, simulate, windo
 
 @pytest.fixture(scope="module")
 def rows():
-    return {r.name: r for r in simulate(seeds=20)}
+    by_name = {}
+    for row in simulate(seeds=20):
+        by_name[row.name] = row
+    return by_name
 
 
 def write_csv(path, samples):
-    path.write_text("t_ms,x,y\n" + "".join(f"{t},{x},{y}\n" for t, x, y in samples))
+    lines = ["t_ms,x,y\n"]
+    for t, x, y in samples:
+        lines.append(f"{t},{x},{y}\n")
+    path.write_text("".join(lines))
     return path
+
+
+def trace_until(end_ms, x_at, y):
+    """One sample every 10 ms from 0 to end_ms; x_at gives the x position at time t."""
+    trace = []
+    for t in range(0, end_ms + 1, 10):
+        trace.append((t, x_at(t), y))
+    return trace
+
+
+def short_trace():
+    """Ends 10 ms before the window does."""
+    return trace_until(WINDOW_MS - 10, lambda t: 1, 1)
 
 
 def test_idle_fails_every_check(rows):
@@ -45,14 +64,14 @@ def test_human_like_passes_everything_after_one_poll(rows):
 
 
 def test_median_counts_runs_that_never_pass():
-    still = [(t, 5, 5) for t in range(0, WINDOW_MS + 1, 10)]
-    line = [(t, t // 10, 5) for t in range(0, WINDOW_MS + 1, 10)]
+    still = trace_until(WINDOW_MS, lambda t: 5, 5)
+    line = trace_until(WINDOW_MS, lambda t: t // 10, 5)
     r = evaluate("mixed", [still, still, line])
     assert r.lumma == 1 and math.isinf(r.lumma_median_ms)
 
 
 def test_detonation_after_the_window_does_not_count():
-    trace = [(t, 5 + max(0, t - 31_000) // 10, 5) for t in range(0, 35_001, 10)]
+    trace = trace_until(35_000, lambda t: 5 + max(0, t - 31_000) // 10, 5)
     r = evaluate("late", [trace])
     assert r.lumma == 0
 
@@ -62,14 +81,14 @@ def test_window_adds_a_sample_at_the_window_end():
     assert window(trace)[-1] == (WINDOW_MS, 2, 2)
 
 
-@pytest.mark.parametrize("samples", [[], [(t, 1, 1) for t in range(0, 29_991, 10)]])
-def test_window_rejects_short_traces(samples):
+@pytest.mark.parametrize("trace", [[], short_trace()])
+def test_window_rejects_short_traces(trace):
     with pytest.raises(ValueError):
-        window(samples)
+        window(trace)
 
 
 def test_recorded_trace_roundtrip(tmp_path):
-    path = write_csv(tmp_path / "t.csv", [(t, t // 10, 5) for t in range(0, 30_001, 10)])
+    path = write_csv(tmp_path / "t.csv", trace_until(WINDOW_MS, lambda t: t // 10, 5))
     trace = load_trace(path)
     assert trace[1] == (10, 1, 5)
     r = evaluate("recorded", [trace])
@@ -83,7 +102,7 @@ def test_load_trace_rejects_unordered_times(tmp_path):
 
 
 def test_load_trace_rejects_a_short_recording(tmp_path):
-    path = write_csv(tmp_path / "t.csv", [(t, 1, 1) for t in range(0, 29_991, 10)])
+    path = write_csv(tmp_path / "t.csv", short_trace())
     with pytest.raises(ValueError, match="30000 needed"):
         load_trace(path)
 
