@@ -17,6 +17,7 @@ Point = tuple[int, int]
 
 
 def _index(trace: Trace, t_ms: int) -> int:
+    """Returns the index of the last sample at or before t_ms, by binary search."""
     if not trace or t_ms < trace[0][0] or t_ms > trace[-1][0]:
         raise ValueError(f"t={t_ms} ms is outside the trace")
 
@@ -24,12 +25,13 @@ def _index(trace: Trace, t_ms: int) -> int:
 
 
 def position(trace: Trace, t_ms: int) -> Point:
+    """Returns the cursor position at t_ms, as GetCursorPos would report it."""
     _, x, y = trace[_index(trace, t_ms)]
     return x, y
 
 
 def last_input(trace: Trace, t_ms: int) -> int:
-    """Time of the last cursor move at or before t_ms; the trace start if it never moved."""
+    """Returns the time of the last move at or before t_ms; the trace start if none."""
     i = _index(trace, t_ms)
     while i > 0 and trace[i][1:] == trace[i - 1][1:]:
         i -= 1
@@ -38,7 +40,9 @@ def last_input(trace: Trace, t_ms: int) -> int:
 
 
 def cursor_moved(trace: Trace, wait_ms: int = 2000) -> bool:
-    """GetCursorPos, Sleep(2000), GetCursorPos: no change means no user.
+    """Reads the cursor twice, 2 s apart: no change means no user.
+
+    GetCursorPos, Sleep(2000), GetCursorPos.
 
     Check Point Evasions, "Human-like behavior", 2.1 (the pafish check).
     """
@@ -49,7 +53,7 @@ def cursor_moved(trace: Trace, wait_ms: int = 2000) -> bool:
 def recent_input(
     trace: Trace, sleep_ms: int = 30_000, max_idle_ms: int = 6_000, moves_are_input: bool = True
 ) -> bool:
-    """Sleep(30000), then GetTickCount() - LASTINPUTINFO.dwTime above 6000 ms means no user.
+    """Sleeps 30 s, then fails if GetTickCount() - LASTINPUTINFO.dwTime > 6000 ms.
 
     Check Point Evasions, "Human-like behavior", 2.5. Cursor moves made with SetCursorPos do
     not update LASTINPUTINFO (moves_are_input=False); SendInput moves do.
@@ -60,13 +64,13 @@ def recent_input(
 
 
 def angle(u: Point, v: Point) -> float:
-    """Angle in degrees between two non-zero vectors."""
+    """Returns the angle in degrees between two non-zero vectors."""
     cos = (u[0] * v[0] + u[1] * v[1]) / (math.hypot(*u) * math.hypot(*v))
     return math.degrees(math.acos(max(-1.0, min(1.0, cos))))
 
 
 def looks_human(points: list[Point], max_angle: float = 45.0) -> bool:
-    """LummaC2 test on one set of reads: all consecutive reads differ, every turn < 45 degrees."""
+    """Applies the LummaC2 test: every read differs, every turn under 45 degrees."""
     vectors = []
     for a, b in pairwise(points):
         if a == b:
@@ -83,9 +87,12 @@ def looks_human(points: list[Point], max_angle: float = 45.0) -> bool:
 def lumma_detonation(
     trace: Trace, interval_ms: int = 50, reads: int = 5, poll_ms: int = 300
 ) -> int | None:
-    """Wait, from the trace start, until LummaC2 v4.0 would act; None if not within the trace.
+    """Returns the wait until LummaC2 v4.0 acts, or None if it never does.
 
-    Outpost24 analysis (November 2023), as reported by The Hacker News and Picus: read the
+    The wait is measured from the trace start; None means not within the trace.
+
+    Outpost24 analysis (November 2023), as reported by The Hacker News, Picus and Check Point
+    Evasions, "Human-like behavior", 2.1: read the
     cursor, Sleep(300) and read again until it has moved; then take 5 reads 50 ms apart that
     must pass looks_human, otherwise start over from the 300 ms wait.
     """

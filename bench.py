@@ -18,6 +18,8 @@ WINDOW_MS = 30_000
 
 @dataclass(frozen=True)
 class Row:
+    """Holds one table row: pass counts per check for one simulator or recording."""
+
     name: str
     runs: int
     moved: int
@@ -28,7 +30,7 @@ class Row:
 
 
 def window(trace: list[Sample], length_ms: int = WINDOW_MS) -> list[Sample]:
-    """The first length_ms of a trace, ending with a sample exactly at the window end."""
+    """Cuts a trace to its first length_ms, adding a sample exactly at the window end."""
     if not trace:
         raise ValueError("empty trace")
 
@@ -48,6 +50,7 @@ def window(trace: list[Sample], length_ms: int = WINDOW_MS) -> list[Sample]:
 
 
 def evaluate(name: str, traces: list[list[Sample]], moves_are_input: bool = True) -> Row:
+    """Runs the three checks on each trace and counts how many pass."""
     moved = recent = lumma = 0
     waits = []
 
@@ -77,6 +80,7 @@ def evaluate(name: str, traces: list[list[Sample]], moves_are_input: bool = True
 
 
 def simulate(seeds: int) -> list[Row]:
+    """Generates seeded traces for every simulator and evaluates each set."""
     rows = []
     for name, sim in SIMULATORS.items():
         traces = []
@@ -89,7 +93,7 @@ def simulate(seeds: int) -> list[Row]:
 
 
 def load_trace(path: Path) -> list[Sample]:
-    """CSV with a t_ms,x,y header as record.py writes it, checked to cover the window."""
+    """Reads a t_ms,x,y CSV written by record.py and checks it covers the window."""
     trace = []
     with path.open(newline="") as f:
         for row in csv.DictReader(f):
@@ -108,6 +112,7 @@ def load_trace(path: Path) -> list[Sample]:
 
 
 def format_table(rows: list[Row]) -> str:
+    """Formats the rows as the Markdown table shown in the README."""
     lines = [
         "| simulator | runs | cursor moved in 2 s | input in last 6 s at 30 s "
         "| LummaC2 passed in 30 s | LummaC2 median wait |",
@@ -125,6 +130,7 @@ def format_table(rows: list[Row]) -> str:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Parses the arguments, checks recorded traces first, then prints the table."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seeds", type=int, default=100, help="traces per simulator")
     parser.add_argument(

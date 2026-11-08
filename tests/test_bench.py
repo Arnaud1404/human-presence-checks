@@ -8,6 +8,7 @@ from bench import WINDOW_MS, evaluate, format_table, load_trace, simulate, windo
 
 @pytest.fixture(scope="module")
 def rows():
+    """Simulates 20 seeds once per module and indexes the rows by simulator name."""
     by_name = {}
     for row in simulate(seeds=20):
         by_name[row.name] = row
@@ -16,6 +17,7 @@ def rows():
 
 
 def write_csv(path, samples):
+    """Writes samples to path as a t_ms,x,y CSV, the format record.py produces."""
     lines = ["t_ms,x,y\n"]
     for t, x, y in samples:
         lines.append(f"{t},{x},{y}\n")
@@ -25,7 +27,7 @@ def write_csv(path, samples):
 
 
 def trace_until(end_ms, x_at, y):
-    """One sample every 10 ms from 0 to end_ms; x_at gives the x position at time t."""
+    """Builds one sample every 10 ms from 0 to end_ms, with x given by x_at(t)."""
     trace = []
     for t in range(0, end_ms + 1, 10):
         trace.append((t, x_at(t), y))
@@ -34,7 +36,7 @@ def trace_until(end_ms, x_at, y):
 
 
 def short_trace():
-    """Ends 10 ms before the window does."""
+    """Builds a trace that ends 10 ms before the window does."""
     return trace_until(WINDOW_MS - 10, lambda t: 1, 1)
 
 
@@ -116,6 +118,7 @@ def test_bad_recording_fails_before_any_simulation(tmp_path, monkeypatch):
     path = write_csv(tmp_path / "t.csv", [])
 
     def no_simulation(seeds):
+        """Fails the test if bench.main reaches the simulation."""
         raise AssertionError("simulate ran before the recorded trace was checked")
 
     monkeypatch.setattr(bench, "simulate", no_simulation)

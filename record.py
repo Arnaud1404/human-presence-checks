@@ -11,11 +11,16 @@ from pathlib import Path
 
 
 class _Point(ctypes.Structure):
+    """Mirrors the Win32 POINT struct that GetCursorPos fills."""
+
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
 
 
 def record(out: Path, seconds: float, step_ms: int = 10) -> int:
-    """Reads until the first read at or past `seconds`, so the trace covers the whole span."""
+    """Records the cursor every step_ms to a CSV; returns the number of rows.
+
+    Reads until the first read at or past `seconds`, so the trace covers the whole span.
+    """
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     point = _Point()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -50,6 +55,7 @@ def record(out: Path, seconds: float, step_ms: int = 10) -> int:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Parses the arguments, counts down, then records the cursor to --out."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("traces/human.csv"))
     parser.add_argument(

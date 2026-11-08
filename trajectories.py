@@ -16,10 +16,12 @@ FloatPoint = tuple[float, float]
 
 
 def _random_point(rng: random.Random) -> FloatPoint:
+    """Picks a uniform random point on the screen."""
     return rng.uniform(0, WIDTH - 1), rng.uniform(0, HEIGHT - 1)
 
 
 def _idle(rng: random.Random) -> Iterator[FloatPoint]:
+    """Yields the same point forever, like a sandbox with no simulator."""
     p = _random_point(rng)
     while True:
         yield p
@@ -34,7 +36,7 @@ def _jumps(rng: random.Random, period_ms: int = 1000) -> Iterator[FloatPoint]:
 
 
 def _random_walk(rng: random.Random, step_px: int = 3) -> Iterator[FloatPoint]:
-    """Irregular jitter: each axis moves by a random step every 10 ms."""
+    """Moves each axis by a random step every 10 ms, an irregular jitter."""
     x, y = _random_point(rng)
     while True:
         yield x, y
@@ -43,7 +45,7 @@ def _random_walk(rng: random.Random, step_px: int = 3) -> Iterator[FloatPoint]:
 
 
 def _linear(rng: random.Random, speed_px_s: float = 800.0) -> Iterator[FloatPoint]:
-    """Straight lines at constant speed between random targets, no pause."""
+    """Moves in straight lines at constant speed between random targets, no pause."""
     x, y = _random_point(rng)
     while True:
         tx, ty = _random_point(rng)
@@ -56,12 +58,12 @@ def _linear(rng: random.Random, speed_px_s: float = 800.0) -> Iterator[FloatPoin
 
 
 def _bezier(s: float, a: float, b: float, c: float, d: float) -> float:
-    """One coordinate of the cubic Bezier with control values a, b, c, d at parameter s."""
+    """Returns one coordinate of the cubic Bezier with control values a, b, c, d."""
     return (1 - s) ** 3 * a + 3 * (1 - s) ** 2 * s * b + 3 * (1 - s) * s**2 * c + s**3 * d
 
 
 def _human_like(rng: random.Random) -> Iterator[FloatPoint]:
-    """Curved moves that speed up then slow down, separated by short pauses.
+    """Moves along curves that speed up then slow down, with short pauses.
 
     Each move is a cubic Bezier whose control points sit off the straight line, so the
     path bends; the smoothstep timing gives the ease-in and ease-out of a hand.
@@ -95,6 +97,8 @@ def _human_like(rng: random.Random) -> Iterator[FloatPoint]:
 
 @dataclass(frozen=True)
 class Simulator:
+    """Pairs a move generator with whether its moves count as user input."""
+
     moves: Callable[[random.Random], Iterator[FloatPoint]]
     # False when the simulator calls SetCursorPos, which moves the cursor without updating
     # GetLastInputInfo; True for SendInput or input injected from outside the guest.
@@ -111,7 +115,7 @@ SIMULATORS: dict[str, Simulator] = {
 
 
 def generate(name: str, seed: int, duration_ms: int = 30_000) -> list[Sample]:
-    """Integer screen positions, clamped to the screen, as GetCursorPos reports them."""
+    """Returns a seeded trace of integer positions clamped to the screen."""
     points = SIMULATORS[name].moves(random.Random(seed))
 
     trace = []

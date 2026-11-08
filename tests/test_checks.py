@@ -12,6 +12,7 @@ from checks import (
 
 
 def still(duration_ms, x=100, y=100):
+    """Builds a trace where the cursor stays at (x, y) for duration_ms."""
     trace = []
     for t in range(0, duration_ms + 1, 10):
         trace.append((t, x, y))
@@ -20,7 +21,7 @@ def still(duration_ms, x=100, y=100):
 
 
 def moving_until(stop_ms, duration_ms):
-    """Moves 1 px right every 10 ms until stop_ms, then stays put."""
+    """Builds a trace moving 1 px right every 10 ms until stop_ms, then still."""
     trace = []
     for t in range(0, duration_ms + 1, 10):
         trace.append((t, 100 + min(t, stop_ms) // 10, 100))
