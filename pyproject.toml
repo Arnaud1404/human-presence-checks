@@ -11,6 +11,8 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+# SIM110 rewrites for loops into any()/all() generators, which AGENTS.md bans.
+ignore = ["SIM110"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

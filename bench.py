@@ -34,42 +34,59 @@ def window(trace: list[Sample], length_ms: int = WINDOW_MS) -> list[Sample]:
     end = trace[0][0] + length_ms
     if trace[-1][0] < end:
         raise ValueError(f"trace lasts {trace[-1][0] - trace[0][0]} ms, {length_ms} needed")
-    cut = [s for s in trace if s[0] <= end]
+    cut = []
+    for sample in trace:
+        if sample[0] <= end:
+            cut.append(sample)
     if cut[-1][0] < end:
         cut.append((end, *position(trace, end)))
     return cut
 
 
 def evaluate(name: str, traces: list[list[Sample]], moves_are_input: bool = True) -> Row:
-    traces = [window(t) for t in traces]
-    waits = [lumma_detonation(t) for t in traces]
+    moved = recent = lumma = 0
+    waits = []
+    for trace in traces:
+        trace = window(trace)
+        if cursor_moved(trace):
+            moved += 1
+        if recent_input(trace, moves_are_input=moves_are_input):
+            recent += 1
+        wait = lumma_detonation(trace)
+        if wait is None:
+            waits.append(math.inf)
+        else:
+            lumma += 1
+            waits.append(wait)
     return Row(
         name=name,
         runs=len(traces),
-        moved=sum(cursor_moved(t) for t in traces),
-        recent=sum(recent_input(t, moves_are_input=moves_are_input) for t in traces),
-        lumma=sum(w is not None for w in waits),
-        lumma_median_ms=statistics.median(math.inf if w is None else w for w in waits),
+        moved=moved,
+        recent=recent,
+        lumma=lumma,
+        lumma_median_ms=statistics.median(waits),
     )
 
 
 def simulate(seeds: int) -> list[Row]:
-    return [
-        evaluate(
-            name,
-            [generate(name, seed, WINDOW_MS) for seed in range(seeds)],
-            moves_are_input=sim.moves_are_input,
-        )
-        for name, sim in SIMULATORS.items()
-    ]
+    rows = []
+    for name, sim in SIMULATORS.items():
+        traces = []
+        for seed in range(seeds):
+            traces.append(generate(name, seed, WINDOW_MS))
+        rows.append(evaluate(name, traces, moves_are_input=sim.moves_are_input))
+    return rows
 
 
 def load_trace(path: Path) -> list[Sample]:
     """CSV with a t_ms,x,y header as record.py writes it, checked to cover the window."""
+    trace = []
     with path.open(newline="") as f:
-        trace = [(int(r["t_ms"]), int(r["x"]), int(r["y"])) for r in csv.DictReader(f)]
-    if any(b[0] <= a[0] for a, b in pairwise(trace)):
-        raise ValueError(f"{path}: times are not strictly increasing")
+        for row in csv.DictReader(f):
+            trace.append((int(row["t_ms"]), int(row["x"]), int(row["y"])))
+    for a, b in pairwise(trace):
+        if b[0] <= a[0]:
+            raise ValueError(f"{path}: times are not strictly increasing")
     try:
         window(trace)
     except ValueError as e:
@@ -103,12 +120,15 @@ def main(argv: list[str] | None = None) -> None:
         help="recorded CSV to evaluate as well (repeatable)",
     )
     args = parser.parse_args(argv)
+    recorded = []
     try:
-        recorded = [(p, load_trace(p)) for p in args.trace]
+        for path in args.trace:
+            recorded.append((path, load_trace(path)))
     except (OSError, ValueError, KeyError) as e:
         parser.error(str(e))
     rows = simulate(args.seeds)
-    rows += [evaluate(f"recorded: {p.name}", [t]) for p, t in recorded]
+    for path, trace in recorded:
+        rows.append(evaluate(f"recorded: {path.name}", [trace]))
     print(format_table(rows))
 
 

@@ -53,6 +53,11 @@ def _linear(rng: random.Random, speed_px_s: float = 800.0) -> Iterator[FloatPoin
         x, y = tx, ty
 
 
+def _bezier(s: float, a: float, b: float, c: float, d: float) -> float:
+    """One coordinate of the cubic Bezier with control values a, b, c, d at parameter s."""
+    return (1 - s) ** 3 * a + 3 * (1 - s) ** 2 * s * b + 3 * (1 - s) * s**2 * c + s**3 * d
+
+
 def _human_like(rng: random.Random) -> Iterator[FloatPoint]:
     """Curved moves that speed up then slow down, separated by short pauses.
 
@@ -66,14 +71,16 @@ def _human_like(rng: random.Random) -> Iterator[FloatPoint]:
         nx, ny = (p0[1] - p3[1]) / dist, (p3[0] - p0[0]) / dist
         bend = rng.uniform(-0.3, 0.3) * dist
         dx, dy = p3[0] - p0[0], p3[1] - p0[1]
-        p1, p2 = [(p0[0] + f * dx + nx * bend, p0[1] + f * dy + ny * bend) for f in (1 / 3, 2 / 3)]
+        third, two_thirds = 1 / 3, 2 / 3
+        p1 = (p0[0] + third * dx + nx * bend, p0[1] + third * dy + ny * bend)
+        p2 = (p0[0] + two_thirds * dx + nx * bend, p0[1] + two_thirds * dy + ny * bend)
         n = round((300 + 0.4 * dist) / STEP_MS)
         for k in range(1, n + 1):
             u = k / n
             s = u * u * (3 - 2 * u)
-            yield tuple(
-                (1 - s) ** 3 * a + 3 * (1 - s) ** 2 * s * b + 3 * (1 - s) * s**2 * c + s**3 * d
-                for a, b, c, d in zip(p0, p1, p2, p3, strict=True)
+            yield (
+                _bezier(s, p0[0], p1[0], p2[0], p3[0]),
+                _bezier(s, p0[1], p1[1], p2[1], p3[1]),
             )
         for _ in range(rng.randint(100, 1500) // STEP_MS):
             yield p3
@@ -100,7 +107,7 @@ SIMULATORS: dict[str, Simulator] = {
 def generate(name: str, seed: int, duration_ms: int = 30_000) -> list[Sample]:
     """Integer screen positions, clamped to the screen, as GetCursorPos reports them."""
     points = SIMULATORS[name].moves(random.Random(seed))
-    return [
-        (t, min(max(round(x), 0), WIDTH - 1), min(max(round(y), 0), HEIGHT - 1))
-        for t, (x, y) in zip(range(0, duration_ms + 1, STEP_MS), points, strict=False)
-    ]
+    trace = []
+    for t, (x, y) in zip(range(0, duration_ms + 1, STEP_MS), points, strict=False):
+        trace.append((t, min(max(round(x), 0), WIDTH - 1), min(max(round(y), 0), HEIGHT - 1)))
+    return trace

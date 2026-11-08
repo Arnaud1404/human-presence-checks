@@ -66,10 +66,15 @@ def angle(u: Point, v: Point) -> float:
 
 def looks_human(points: Sequence[Point], max_angle: float = 45.0) -> bool:
     """LummaC2 test on one set of reads: all consecutive reads differ, every turn < 45 degrees."""
-    if any(a == b for a, b in pairwise(points)):
-        return False
-    vectors = [(b[0] - a[0], b[1] - a[1]) for a, b in pairwise(points)]
-    return all(angle(u, v) < max_angle for u, v in pairwise(vectors))
+    vectors = []
+    for a, b in pairwise(points):
+        if a == b:
+            return False
+        vectors.append((b[0] - a[0], b[1] - a[1]))
+    for u, v in pairwise(vectors):
+        if angle(u, v) >= max_angle:
+            return False
+    return True
 
 
 def lumma_detonation(
@@ -88,7 +93,9 @@ def lumma_detonation(
         t += poll_ms
         if position(trace, t) == previous:
             continue
-        points = [position(trace, t + k * interval_ms) for k in range(reads)]
+        points = []
+        for k in range(reads):
+            points.append(position(trace, t + k * interval_ms))
         if looks_human(points):
             return t + span - t0
         t += span
