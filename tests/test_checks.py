@@ -15,6 +15,7 @@ def still(duration_ms, x=100, y=100):
     trace = []
     for t in range(0, duration_ms + 1, 10):
         trace.append((t, x, y))
+
     return trace
 
 
@@ -23,6 +24,7 @@ def moving_until(stop_ms, duration_ms):
     trace = []
     for t in range(0, duration_ms + 1, 10):
         trace.append((t, 100 + min(t, stop_ms) // 10, 100))
+
     return trace
 
 
@@ -84,6 +86,7 @@ def test_lumma_wait_is_measured_from_the_trace_start():
     shifted = []
     for t, x, y in moving_until(10_000, 10_000):
         shifted.append((t + 1_000, x, y))
+
     assert lumma_detonation(shifted) == 500
 
 
@@ -92,6 +95,7 @@ def test_lumma_never_detonates_on_zigzag():
     for t in range(0, 5_001, 10):
         step = t // 50
         zigzag.append((t, step * 10, (step % 2) * 10))
+
     assert lumma_detonation(zigzag) is None
 
 
@@ -99,5 +103,6 @@ def test_lumma_retries_until_the_cursor_moves():
     trace = []
     for t in range(0, 5_001, 10):
         trace.append((t, 100 + max(0, t - 1_000) // 10, 100))
+
     detonation = lumma_detonation(trace)
     assert detonation is not None and detonation > 1_000

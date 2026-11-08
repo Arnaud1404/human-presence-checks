@@ -19,6 +19,7 @@ Point = tuple[int, int]
 def _index(trace: Trace, t_ms: int) -> int:
     if not trace or t_ms < trace[0][0] or t_ms > trace[-1][0]:
         raise ValueError(f"t={t_ms} ms is outside the trace")
+
     return bisect_right(trace, t_ms, key=lambda s: s[0]) - 1
 
 
@@ -32,6 +33,7 @@ def last_input(trace: Trace, t_ms: int) -> int:
     i = _index(trace, t_ms)
     while i > 0 and trace[i][1:] == trace[i - 1][1:]:
         i -= 1
+
     return trace[i][0]
 
 
@@ -70,9 +72,11 @@ def looks_human(points: list[Point], max_angle: float = 45.0) -> bool:
         if a == b:
             return False
         vectors.append((b[0] - a[0], b[1] - a[1]))
+
     for u, v in pairwise(vectors):
         if angle(u, v) >= max_angle:
             return False
+
     return True
 
 
@@ -87,15 +91,19 @@ def lumma_detonation(
     """
     t0 = t = trace[0][0]
     span = interval_ms * (reads - 1)
+
     while t + poll_ms + span <= trace[-1][0]:
         previous = position(trace, t)
         t += poll_ms
         if position(trace, t) == previous:
             continue
+
         points = []
         for k in range(reads):
             points.append(position(trace, t + k * interval_ms))
+
         if looks_human(points):
             return t + span - t0
         t += span
+
     return None

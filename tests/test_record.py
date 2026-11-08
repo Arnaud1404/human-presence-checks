@@ -11,6 +11,7 @@ def test_bad_arguments_stop_before_recording(argv, monkeypatch):
         raise AssertionError("record() ran despite invalid arguments")
 
     monkeypatch.setattr(record, "record", no_recording)
+
     with pytest.raises(SystemExit) as exc:
         record.main(argv)
     assert exc.value.code == 2

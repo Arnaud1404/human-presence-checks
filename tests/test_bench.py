@@ -11,6 +11,7 @@ def rows():
     by_name = {}
     for row in simulate(seeds=20):
         by_name[row.name] = row
+
     return by_name
 
 
@@ -18,6 +19,7 @@ def write_csv(path, samples):
     lines = ["t_ms,x,y\n"]
     for t, x, y in samples:
         lines.append(f"{t},{x},{y}\n")
+
     path.write_text("".join(lines))
     return path
 
@@ -27,6 +29,7 @@ def trace_until(end_ms, x_at, y):
     trace = []
     for t in range(0, end_ms + 1, 10):
         trace.append((t, x_at(t), y))
+
     return trace
 
 
@@ -66,6 +69,7 @@ def test_human_like_passes_everything_after_one_poll(rows):
 def test_median_counts_runs_that_never_pass():
     still = trace_until(WINDOW_MS, lambda t: 5, 5)
     line = trace_until(WINDOW_MS, lambda t: t // 10, 5)
+
     r = evaluate("mixed", [still, still, line])
     assert r.lumma == 1 and math.isinf(r.lumma_median_ms)
 
@@ -91,6 +95,7 @@ def test_recorded_trace_roundtrip(tmp_path):
     path = write_csv(tmp_path / "t.csv", trace_until(WINDOW_MS, lambda t: t // 10, 5))
     trace = load_trace(path)
     assert trace[1] == (10, 1, 5)
+
     r = evaluate("recorded", [trace])
     assert (r.moved, r.recent, r.lumma) == (1, 1, 1)
 
@@ -114,6 +119,7 @@ def test_bad_recording_fails_before_any_simulation(tmp_path, monkeypatch):
         raise AssertionError("simulate ran before the recorded trace was checked")
 
     monkeypatch.setattr(bench, "simulate", no_simulation)
+
     with pytest.raises(SystemExit):
         bench.main(["--trace", str(path)])
 
